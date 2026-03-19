@@ -1,16 +1,28 @@
-from django.contrib.auth.models import AbstractUser
-from django.db import models
+from rest_framework import permissions
 
-class User(AbstractUser):
-    email = models.EmailField(unique=True)
-    username = None
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
 
-    ROLE_CHOICES = (
-        ('ADMIN', 'Admin'),
-        ('STAFF', 'Staff'),
-    )
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='STAFF')
+class IsStaffOrReadOnly(permissions.BasePermission):
+    """Permission class that allows read-only access to authenticated users,
+    while restricting write access to staff and admins.
+
+
+    * Any authenticated user can list/retrieve inventory data.
+    * Only users with role 'ADMIN' or 'STAFF' can create/update/delete.
+    """
+
+
+    def has_permission(self, request, view):
+        # Require authentication for all inventory endpoints.
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+
+        # Safe methods (GET, HEAD, OPTIONS) are allowed for authenticated users.
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+
+        # Write access only for staff/admin roles.
+        return getattr(request.user, "role", "") in {"ADMIN", "STAFF"}
