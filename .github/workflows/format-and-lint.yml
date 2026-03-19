@@ -34,7 +34,7 @@ jobs:
         run: |
           isort .
           isort --check-only .
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Run flake8
         run: |
