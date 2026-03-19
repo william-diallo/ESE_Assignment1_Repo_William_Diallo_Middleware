@@ -3,8 +3,6 @@ from .models import User
 from django.contrib.auth.password_validation import validate_password
 
 
-
-
 class RegisterSerializer(serializers.ModelSerializer):
     """Serializer for user registration.
 
@@ -13,14 +11,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     and creates a new user instance.
     """
 
-
     password = serializers.CharField(write_only=True, validators=[validate_password])
-
 
     class Meta:
         model = User
         fields = ("email", "password", "role")
-
 
     def create(self, validated_data):
         # Create the user with a hashed password
@@ -33,11 +28,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-
-
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for reading user profile data."""
-
 
     class Meta:
         model = User

@@ -8,24 +8,17 @@ from .models import User
 from .serialisers import RegisterSerializer, UserSerializer
 
 
-
-
 class RegisterView(generics.CreateAPIView):
     """API endpoint for registering a new user."""
-
 
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
 
-
-
 class ProfileView(APIView):
     """API endpoint to return the currently authenticated user's profile."""
 
-
     permission_classes = [IsAuthenticated]
-
 
     def get(self, request):
         serializer = UserSerializer(request.user)

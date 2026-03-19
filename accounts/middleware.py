@@ -3,10 +3,7 @@ import logging
 
 from django.utils.deprecation import MiddlewareMixin
 
-
 logger = logging.getLogger(__name__)
-
-
 
 
 class RequestLoggingMiddleware(MiddlewareMixin):
@@ -25,7 +22,6 @@ class RequestLoggingMiddleware(MiddlewareMixin):
     between the HTTP request and view execution.
     """
 
-
     def process_request(self, request):
         # Log a short summary of every incoming request.
         logger.debug(
@@ -35,14 +31,11 @@ class RequestLoggingMiddleware(MiddlewareMixin):
             request.META.get("REMOTE_ADDR"),
         )
 
-
         # If the request contains a request ID header, store it on the request for later use.
         request.request_id = request.META.get("HTTP_X_REQUEST_ID")
 
-
         # Returning None continues normal processing; returning a response would short-circuit.
         return None
-
 
     def process_response(self, request, response):
         # Echo back the request ID in the response headers when present.

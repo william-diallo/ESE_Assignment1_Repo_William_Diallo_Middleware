@@ -2,8 +2,6 @@ from django.conf import settings
 from django.db import models
 
 
-
-
 class InventoryItem(models.Model):
     """Represents a single item in the inventory.
 
@@ -27,11 +25,9 @@ class InventoryItem(models.Model):
     # Category is a simple string in this model; a separate Category model could be added later.
     category = models.CharField(max_length=100, blank=True)
 
-
     # Track creation / update timestamps.
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     # Optionally link the item to the user who created it.
     created_by = models.ForeignKey(
@@ -43,10 +39,8 @@ class InventoryItem(models.Model):
         help_text="User who created this inventory item.",
     )
 
-
     class Meta:
         ordering = ["-updated_at"]
-
 
     @property
     def status(self) -> str:
@@ -57,7 +51,6 @@ class InventoryItem(models.Model):
         if self.quantity < 10:
             return self.STATUS_LOW_STOCK
         return self.STATUS_AVAILABLE
-
 
     def __str__(self):
         return f"{self.name} (qty={self.quantity})"

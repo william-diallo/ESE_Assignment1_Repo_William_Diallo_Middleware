@@ -20,10 +20,8 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
     # Authentication routes (register/login/refresh/profile)
     path("api/auth/", include("accounts.urls")),
-
     # Inventory management routes
     path("api/inventory/", include("inventory.urls")),
 ]
