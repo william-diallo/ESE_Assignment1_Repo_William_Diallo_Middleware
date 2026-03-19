@@ -32,6 +32,7 @@ jobs:
 
       - name: Run isort (import sorting check)
         run: |
+        
           isort --check-only .
 
       - name: Run flake8

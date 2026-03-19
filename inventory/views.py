@@ -1,9 +1,10 @@
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
+from accounts.permissions import IsStaffOrReadOnly
+
 from .models import InventoryItem
 from .serialisers import InventoryItemSerializer
-from accounts.permissions import IsStaffOrReadOnly
 
 
 class InventoryItemViewSet(viewsets.ModelViewSet):
