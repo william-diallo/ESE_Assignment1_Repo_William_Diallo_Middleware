@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['https://glorious-xylophone-695grw677999f5gvp-3000.app.github.dev/login', '0.0.0.0:8000', 'localhost']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party apps for API support
     "rest_framework",  # authentication and API building
+    "rest_framework_simplejwt",
     "corsheaders",
     # Local apps
     "accounts",
