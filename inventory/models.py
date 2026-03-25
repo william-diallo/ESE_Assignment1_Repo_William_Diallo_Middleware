@@ -41,6 +41,8 @@ class InventoryItem(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+        verbose_name = "Inventory Item"
+        verbose_name_plural = "Inventory Items"
 
     @property
     def status(self) -> str:
