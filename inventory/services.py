@@ -1,6 +1,6 @@
 from django.db.models import Q
 from .models import InventoryItem
-
+from django.core.exceptions import PermissionDenied
 
 def search_inventory_items(query):
     """
@@ -35,3 +35,55 @@ def search_inventory_items(query):
         pass  # query is not a valid integer, skip ID search
 
     return InventoryItem.objects.filter(search_filter)
+
+def create_inventory_item(user, name, description, category, quantity):
+    """
+    Create an InventoryItem only if the user is an admin (staff or superuser).
+
+    Args:
+        user (User): The user attempting to create the item.
+        name (str): Item name.
+        description (str): Item description.
+        category (str): Item category.
+        quantity (int): Quantity in stock.
+
+    Returns:
+        InventoryItem: The created inventory item.
+
+    Raises:
+        PermissionDenied: If the user is not an admin.
+    """
+
+    if not (user.is_staff or user.is_superuser):
+        raise PermissionDenied("Only admin users can create inventory items.")
+
+    return InventoryItem.objects.create(
+        name=name,
+        description=description,
+        category=category,
+        quantity=quantity
+    )
+
+def update_inventory_item(user, item: InventoryItem, **fields):
+    """
+    Update an InventoryItem only if the user is an admin.
+    """
+    if not (user.is_staff or user.is_superuser):
+        raise PermissionDenied("Only admin users can update inventory items.")
+
+    for field, value in fields.items():
+        setattr(item, field, value)
+
+    item.save()
+    return item
+
+
+def delete_inventory_item(user, item: InventoryItem):
+    """
+    Delete an InventoryItem only if the user is an admin.
+    """
+    if not (user.is_staff or user.is_superuser):
+        raise PermissionDenied("Only admin users can delete inventory items.")
+
+    item.delete()
+    return True
