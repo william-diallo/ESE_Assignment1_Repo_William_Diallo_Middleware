@@ -88,6 +88,24 @@ def update_inventory_item(user, item: InventoryItem, **fields):
     if not _is_admin_user(user):
         raise PermissionDenied("Only admin users can update inventory items.")
 
+    allowed_fields = {"name", "description", "category", "quantity"}
+    invalid_fields = set(fields) - allowed_fields
+    if invalid_fields:
+        raise ValidationError(
+            f"Invalid field(s) for update: {', '.join(sorted(invalid_fields))}."
+        )
+
+    if "quantity" in fields:
+        try:
+            quantity_value = int(fields["quantity"])
+        except (TypeError, ValueError):
+            raise ValidationError("Quantity must be a valid integer.")
+
+        if quantity_value < 0:
+            raise ValidationError("Quantity cannot be negative.")
+
+        fields["quantity"] = quantity_value
+
     for field, value in fields.items():
         setattr(item, field, value)
 

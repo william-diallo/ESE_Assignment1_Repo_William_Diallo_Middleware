@@ -39,3 +39,25 @@ class InventoryItemSerializer(serializers.ModelSerializer):
         if request and hasattr(request, "user") and request.user.is_authenticated:
             validated_data["created_by"] = request.user.email
         return super().create(validated_data)
+
+
+class InventoryItemUpdateSerializer(serializers.ModelSerializer):
+    """Serializer used for updating editable inventory item attributes."""
+
+    amount = serializers.IntegerField(source="quantity", min_value=0, required=False)
+    status = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = InventoryItem
+        fields = (
+            "id",
+            "name",
+            "description",
+            "quantity",
+            "category",
+            "status",
+            "created_at",
+            "updated_at",
+            "created_by",
+        )
+        read_only_fields = ("id", "created_at", "updated_at", "created_by", "status")

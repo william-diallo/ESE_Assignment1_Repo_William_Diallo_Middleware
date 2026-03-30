@@ -4,14 +4,24 @@ from rest_framework.exceptions import ValidationError
 
 from accounts.permissions import IsStaffOrReadOnly
 from .models import InventoryItem
-from .serialisers import InventoryItemSerializer
-from .services import search_inventory_items, create_inventory_item, delete_inventory_item
+from .serialisers import InventoryItemSerializer, InventoryItemUpdateSerializer
+from .services import (
+    search_inventory_items,
+    create_inventory_item,
+    update_inventory_item,
+    delete_inventory_item,
+)
 from django.core.exceptions import PermissionDenied
 
 
 class InventoryItemViewSet(viewsets.ModelViewSet):
     queryset = InventoryItem.objects.all()
     serializer_class = InventoryItemSerializer
+
+    def get_serializer_class(self):
+        if self.action in {"update", "partial_update"}:
+            return InventoryItemUpdateSerializer
+        return InventoryItemSerializer
 
     def get_permissions(self):
         # Only staff can create items
@@ -78,4 +88,60 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
             return Response(
                 {"detail": "Only admin users can delete inventory items."},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+
+    def update(self, request, *args, **kwargs):
+        """Update all editable attributes of an inventory item (PUT)."""
+        item = self.get_object()
+        serializer = self.get_serializer(item, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            updated_item = update_inventory_item(
+                request.user,
+                item,
+                **serializer.validated_data,
+            )
+            response_serializer = InventoryItemSerializer(
+                updated_item,
+                context=self.get_serializer_context(),
+            )
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        except PermissionDenied:
+            return Response(
+                {"detail": "Only admin users can update inventory items."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except ValidationError as exc:
+            return Response(
+                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def partial_update(self, request, *args, **kwargs):
+        """Update selected editable attributes of an inventory item (PATCH)."""
+        item = self.get_object()
+        serializer = self.get_serializer(item, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            updated_item = update_inventory_item(
+                request.user,
+                item,
+                **serializer.validated_data,
+            )
+            response_serializer = InventoryItemSerializer(
+                updated_item,
+                context=self.get_serializer_context(),
+            )
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        except PermissionDenied:
+            return Response(
+                {"detail": "Only admin users can update inventory items."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except ValidationError as exc:
+            return Response(
+                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
