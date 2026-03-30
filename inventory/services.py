@@ -1,6 +1,7 @@
 from django.db.models import Q
 from .models import InventoryItem
 from django.core.exceptions import PermissionDenied
+from rest_framework.exceptions import ValidationError
 
 def search_inventory_items(query):
     """
@@ -54,14 +55,25 @@ def create_inventory_item(user, name, description, category, quantity):
         PermissionDenied: If the user is not an admin.
     """
 
-    if not (user.is_staff or user.is_superuser):
+    user_role = getattr(user, "role", "")
+    is_admin_user = user.is_staff or user.is_superuser or user_role == "ADMIN"
+    if not is_admin_user:
         raise PermissionDenied("Only admin users can create inventory items.")
+
+    try:
+        quantity_value = int(quantity)
+    except (TypeError, ValueError):
+        raise ValidationError("Quantity must be a valid integer.")
+
+    if quantity_value < 0:
+        raise ValidationError("Quantity cannot be negative.")
 
     return InventoryItem.objects.create(
         name=name,
         description=description,
         category=category,
-        quantity=quantity
+        quantity=quantity_value,
+        created_by=getattr(user, "email", None),
     )
 
 def update_inventory_item(user, item: InventoryItem, **fields):

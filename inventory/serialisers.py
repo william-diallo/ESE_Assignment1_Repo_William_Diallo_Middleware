@@ -16,7 +16,7 @@ class InventoryItemSerializer(serializers.ModelSerializer):
     amount = serializers.IntegerField(source="quantity")
 
     # Status is derived from the quantity (computed property on the model).
-    status = serializers.CharField(source="status", read_only=True)
+    status = serializers.CharField(read_only=True)
 
     class Meta:
         model = InventoryItem
@@ -34,8 +34,8 @@ class InventoryItemSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "updated_at", "created_by", "status")
 
     def create(self, validated_data):
-        # Automatically assign the authenticated user as the creator.
+        # Store the creator's email address.
         request = self.context.get("request")
         if request and hasattr(request, "user") and request.user.is_authenticated:
-            validated_data["created_by"] = request.user
+            validated_data["created_by"] = request.user.email
         return super().create(validated_data)

@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ValidationError
 
 from accounts.permissions import IsStaffOrReadOnly
 from .models import InventoryItem
@@ -28,7 +29,7 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
                 name=request.data.get("name"),
                 description=request.data.get("description"),
                 category=request.data.get("category"),
-                quantity=request.data.get("quantity"),
+                quantity=request.data.get("amount", request.data.get("quantity")),
             )
 
             serializer = self.get_serializer(item)
@@ -38,6 +39,11 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
             return Response(
                 {"detail": "Only admin users can create inventory items."},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        except ValidationError as exc:
+            return Response(
+                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     def get_queryset(self):

@@ -29,30 +29,36 @@ class InventoryItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Optionally link the item to the user who created it.
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+    # Store the email of the user who created this item.
+    created_by = models.EmailField(
         null=True,
         blank=True,
-        related_name="inventory_items",
-        help_text="User who created this inventory item.",
+        help_text="Email of the user who created this inventory item.",
     )
 
     class Meta:
+        db_table = "inventory_items"
         ordering = ["-updated_at"]
         verbose_name = "Inventory Item"
         verbose_name_plural = "Inventory Items"
 
     @property
-    def status(self) -> str:
+    def stock_status(self) -> str:
         """Return a high-level stock status derived from the current quantity."""
+
+        low_stock_threshold = max(getattr(settings, "LOW_STOCK_THRESHOLD", 10), 1)
 
         if self.quantity == 0:
             return self.STATUS_OUT_OF_STOCK
-        if self.quantity < 10:
+        if self.quantity < low_stock_threshold:
             return self.STATUS_LOW_STOCK
         return self.STATUS_AVAILABLE
+
+    @property
+    def status(self) -> str:
+        """Backward-compatible alias for computed stock status."""
+
+        return self.stock_status
 
     def __str__(self):
         return f"{self.name} (qty={self.quantity})"
