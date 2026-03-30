@@ -38,7 +38,7 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
                 name=request.data.get("name"),
                 description=request.data.get("description"),
                 category=request.data.get("category"),
-                quantity=request.data.get("amount", request.data.get("quantity")),
+                quantity=request.data.get("quantity"),
             )
 
             serializer = self.get_serializer(item)

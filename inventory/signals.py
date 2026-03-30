@@ -30,9 +30,14 @@ def notify_low_stock_on_status_change(
 ):
     """Send an alert only when an item enters LOW_STOCK from another state."""
 
+    # The requirement is update-driven alerts, not creation-time alerts.
+    if created:
+        return
+
     previous_status = getattr(instance, "_previous_stock_status", None)
     current_status = instance.stock_status
 
+    # Fire exactly on transition into LOW_STOCK after an update.
     if (
         current_status == InventoryItem.STATUS_LOW_STOCK
         and previous_status != InventoryItem.STATUS_LOW_STOCK

@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from typing import List
+from django.db.models import Q
 import logging
 
 logger = logging.getLogger(__name__)
@@ -104,14 +105,16 @@ def send_password_reset_code_email(user_email: str, code: str, expiry_minutes: i
 
 def _get_admin_emails() -> List[str]:
     """
-    Retrieve all admin/staff user email addresses.
+    Retrieve all admin-level user email addresses.
     
     Returns:
-        List[str]: List of email addresses for all staff users (includes admins)
+        List[str]: Unique email addresses for admin-level users.
     """
-    # Query all users with is_staff=True (these are admin and staff users)
-    # Extract only their email addresses
-    admin_users = User.objects.filter(is_staff=True).values_list('email', flat=True)
+    # Admin-level users are users explicitly marked ADMIN by role,
+    # plus privileged Django users (staff/superuser).
+    admin_users = User.objects.filter(
+        Q(role="ADMIN") | Q(is_staff=True) | Q(is_superuser=True)
+    ).exclude(email="").values_list("email", flat=True).distinct()
     return list(admin_users)
 
 
