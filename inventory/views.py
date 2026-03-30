@@ -1,12 +1,11 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import ValidationError
 
 from accounts.permissions import IsStaffOrReadOnly
 from .models import InventoryItem
 from .serialisers import InventoryItemSerializer
-from .services import search_inventory_items, create_inventory_item
+from .services import search_inventory_items, create_inventory_item, delete_inventory_item
 from django.core.exceptions import PermissionDenied
 
 
@@ -48,7 +47,35 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = InventoryItem.objects.all()
+
+        # Attribute-level table filters.
+        name_query = self.request.query_params.get("name")
+        category_query = self.request.query_params.get("category")
+        description_query = self.request.query_params.get("description")
+
+        if name_query:
+            queryset = queryset.filter(name__icontains=name_query)
+        if category_query:
+            queryset = queryset.filter(category__icontains=category_query)
+        if description_query:
+            queryset = queryset.filter(description__icontains=description_query)
+
         search_query = self.request.query_params.get("search", None)
         if search_query:
-            queryset = search_inventory_items(search_query)
+            search_results = search_inventory_items(search_query)
+            queryset = queryset.filter(id__in=search_results.values("id"))
+
         return queryset
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete an inventory item only if the user is an admin/staff user."""
+        item = self.get_object()
+
+        try:
+            delete_inventory_item(request.user, item)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except PermissionDenied:
+            return Response(
+                {"detail": "Only admin users can delete inventory items."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
