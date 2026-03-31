@@ -201,3 +201,28 @@ LOW_STOCK_THRESHOLD = int(os.getenv('LOW_STOCK_THRESHOLD', '10'))
 PASSWORD_RESET_CODE_EXPIRY_MINUTES = int(
     os.getenv('PASSWORD_RESET_CODE_EXPIRY_MINUTES', '10')
 )
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "audit_plain": {
+            "format": "%(message)s",
+        },
+    },
+    "handlers": {
+        "inventory_audit_file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "inventory_audit.log",
+            "formatter": "audit_plain",
+        },
+    },
+    "loggers": {
+        "inventory.audit": {
+            "handlers": ["inventory_audit_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
