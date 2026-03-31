@@ -10,27 +10,42 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env and optional sendgrid.env file.
+load_dotenv(BASE_DIR / ".env")
+
+sendgrid_env_path = BASE_DIR / "sendgrid.env"
+if sendgrid_env_path.exists():
+    # First try UTF-8, then retry UTF-16 if key is still missing.
+    try:
+        load_dotenv(sendgrid_env_path, override=True)
+    except UnicodeDecodeError:
+        pass
+
+    if not os.getenv("SENDGRID_API_KEY"):
+        try:
+            load_dotenv(sendgrid_env_path, override=True, encoding="utf-16")
+        except UnicodeDecodeError:
+            pass
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = ['https://glorious-xylophone-695grw677999f5gvp-3000.app.github.dev/login', '0.0.0.0:8000', 'localhost']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
 
 
 # Application definition
@@ -44,10 +59,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party apps for API support
     "rest_framework",  # authentication and API building
+    "rest_framework_simplejwt",
     "corsheaders",
     # Local apps
     "accounts",
-    "inventory",
+    "inventory.apps.InventoryConfig",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -61,7 +78,6 @@ MIDDLEWARE = [
     "accounts.middleware.RequestLoggingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
 ]
 
 ROOT_URLCONF = "ims_backend.urls"
@@ -89,10 +105,23 @@ WSGI_APPLICATION = "ims_backend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "ims_db"),
+        "USER": os.getenv("POSTGRES_USER", "ims_user"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
+
+# Fallback to sqlite for local development if PostgreSQL is not available (optional)
+if os.getenv("USE_SQLITE", "False").lower() in ("true", "1", "yes"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -131,9 +160,15 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
-CORS_ALLOW_HEADERS = ['*']
-CORS_ALLOW_METHODS = ['*']
+# CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
+CORS_ALLOW_HEADERS = ["*"]
+CORS_ALLOW_METHODS = ["*"]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -143,3 +178,52 @@ REST_FRAMEWORK = {
 
 
 AUTH_USER_MODEL = "accounts.User"
+
+# EMAIL CONFIGURATION - SendGrid Integration
+# SendGrid is used to send transactional emails (low stock alerts) to admin users
+# API key is read from environment variable SENDGRID_API_KEY
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+# Disable sandbox mode so emails are actually delivered even in DEBUG mode.
+# The default behaviour of django-sendgrid-v5 is to enable sandbox mode when
+# DEBUG=True, which makes SendGrid report "delivered" while never sending.
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "").strip()
+
+ADMIN_PANEL_URL = os.getenv(
+    "ADMIN_PANEL_URL", "http://localhost:8000/admin/inventory/inventoryitem/"
+)
+
+# Low Stock Alert Threshold
+# Items with quantity below this number are considered "low stock"
+LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "10"))
+
+# Password reset verification code expiration (minutes)
+PASSWORD_RESET_CODE_EXPIRY_MINUTES = int(
+    os.getenv("PASSWORD_RESET_CODE_EXPIRY_MINUTES", "10")
+)
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "audit_plain": {
+            "format": "%(message)s",
+        },
+    },
+    "handlers": {
+        "inventory_audit_file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "inventory_audit.log",
+            "formatter": "audit_plain",
+        },
+    },
+    "loggers": {
+        "inventory.audit": {
+            "handlers": ["inventory_audit_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

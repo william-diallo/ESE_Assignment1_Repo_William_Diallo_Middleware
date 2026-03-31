@@ -18,6 +18,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+# Configure admin site
+admin.site.site_header = "Inventory Management System"
+admin.site.site_title = "IMS Admin"
+admin.site.index_title = "Welcome to Inventory Management System"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Authentication routes (register/login/refresh/profile)

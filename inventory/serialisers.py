@@ -12,11 +12,11 @@ class InventoryItemSerializer(serializers.ModelSerializer):
     Automatically sets the `created_by` field from the requesting user.
     """
 
-    # Expose the internal `quantity` field as `amount` in the API payload.
-    amount = serializers.IntegerField(source="quantity")
+    # Expose the internal `quantity` field as `quantity` in the API payload.
+    quantity = serializers.IntegerField()
 
     # Status is derived from the quantity (computed property on the model).
-    status = serializers.CharField(source="status", read_only=True)
+    status = serializers.CharField(read_only=True)
 
     class Meta:
         model = InventoryItem
@@ -24,7 +24,7 @@ class InventoryItemSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "amount",
+            "quantity",
             "category",
             "status",
             "created_at",
@@ -34,8 +34,30 @@ class InventoryItemSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "updated_at", "created_by", "status")
 
     def create(self, validated_data):
-        # Automatically assign the authenticated user as the creator.
+        # Store the creator's email address.
         request = self.context.get("request")
         if request and hasattr(request, "user") and request.user.is_authenticated:
-            validated_data["created_by"] = request.user
+            validated_data["created_by"] = request.user.email
         return super().create(validated_data)
+
+
+class InventoryItemUpdateSerializer(serializers.ModelSerializer):
+    """Serializer used for updating editable inventory item attributes."""
+
+    quantity = serializers.IntegerField(min_value=0, required=False)
+    status = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = InventoryItem
+        fields = (
+            "id",
+            "name",
+            "description",
+            "quantity",
+            "category",
+            "status",
+            "created_at",
+            "updated_at",
+            "created_by",
+        )
+        read_only_fields = ("id", "created_at", "updated_at", "created_by", "status")
