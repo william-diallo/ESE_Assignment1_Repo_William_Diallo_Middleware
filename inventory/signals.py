@@ -73,7 +73,7 @@ def notify_low_stock_on_status_change(
     # Fire exactly on transition into LOW_STOCK after an update.
     if (
         current_status == InventoryItem.STATUS_LOW_STOCK
-        and previous_status != InventoryItem.STATUS_LOW_STOCK
+        and previous_status != InventoryItem.STATUS_LOW_STOCK  # noqa: W503
     ):
         send_low_stock_alert_email(instance)
 

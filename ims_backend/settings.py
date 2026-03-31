@@ -42,7 +42,7 @@ if sendgrid_env_path.exists():
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
@@ -77,7 +77,6 @@ MIDDLEWARE = [
     "accounts.middleware.RequestLoggingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
 ]
 
 ROOT_URLCONF = "ims_backend.urls"
@@ -108,7 +107,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("POSTGRES_DB", "ims_db"),
         "USER": os.getenv("POSTGRES_USER", "ims_user"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "Will"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
         "HOST": os.getenv("POSTGRES_HOST", "localhost"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
@@ -160,7 +159,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-#CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
+# CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
 CORS_ALLOW_HEADERS = ['*']
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_CREDENTIALS = True
@@ -188,10 +187,11 @@ SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
 # The default behaviour of django-sendgrid-v5 is to enable sandbox mode when
 # DEBUG=True, which makes SendGrid report "delivered" while never sending.
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-_default_from_email = os.getenv('DEFAULT_FROM_EMAIL', '').strip()
-if (not _default_from_email) or _default_from_email.endswith('@inventorysystem.com'):
-    _default_from_email = 'WillDeeX1@outlook.com'
-DEFAULT_FROM_EMAIL = _default_from_email
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '').strip()
+
+ADMIN_PANEL_URL = os.getenv(
+    'ADMIN_PANEL_URL', 'http://localhost:8000/admin/inventory/inventoryitem/'
+)
 
 # Low Stock Alert Threshold
 # Items with quantity below this number are considered "low stock"

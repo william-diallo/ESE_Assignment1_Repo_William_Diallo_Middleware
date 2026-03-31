@@ -10,6 +10,7 @@ def _is_admin_user(user) -> bool:
     user_role = str(getattr(user, "role", "")).upper()
     return user.is_staff or user.is_superuser or user_role in {"ADMIN", "STAFF"}
 
+
 def search_inventory_items(query):
     """
     Search for inventory items based on name, description, ID, or category.
@@ -43,6 +44,7 @@ def search_inventory_items(query):
         pass  # query is not a valid integer, skip ID search
 
     return InventoryItem.objects.filter(search_filter)
+
 
 def create_inventory_item(user, name, description, category, quantity):
     """
@@ -80,6 +82,7 @@ def create_inventory_item(user, name, description, category, quantity):
         quantity=quantity_value,
         created_by=getattr(user, "email", None),
     )
+
 
 def update_inventory_item(user, item: InventoryItem, **fields):
     """

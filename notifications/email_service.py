@@ -19,21 +19,21 @@ User = get_user_model()
 def send_low_stock_alert_email(item):
     """
     Send an email alert to all admin users when an inventory item reaches low stock.
-    
+
     This function is triggered when an item's quantity drops below the LOW_STOCK_THRESHOLD.
     It retrieves all admin/staff users and sends them a formatted email alert via SendGrid
     containing details about the low stock item.
-    
+
     Args:
         item: InventoryItem instance object that has reached low stock status
-        
+
     Returns:
         bool: True if email was sent successfully, False otherwise
-        
+
     Raises:
         Exception: If SendGrid API call fails (logged but not re-raised)
     """
-    
+
     # Verify that SendGrid API key is configured
     if not settings.SENDGRID_API_KEY:
         logger.warning(
@@ -46,18 +46,18 @@ def send_low_stock_alert_email(item):
         # Retrieve all admin and staff users who should receive the notification
         # Using filter to get users with is_staff=True (includes both admins and staff)
         admin_emails = _get_admin_emails()
-        
+
         if not admin_emails:
             logger.warning(
                 f"No admin users found. Low stock alert for '{item.name}' was not sent."
             )
             return False
-        
+
         # Compose the email subject and body with item details
         subject = f"LOW STOCK ALERT: {item.name}"
         html_content = _generate_low_stock_email_html(item)
         text_content = _generate_low_stock_email_text(item)
-        
+
         # Send email to each admin user
         for admin_email in admin_emails:
             _send_email_via_sendgrid(
@@ -66,12 +66,12 @@ def send_low_stock_alert_email(item):
                 html_content=html_content,
                 plain_text_content=text_content,
             )
-        
+
         logger.info(
             f"Low stock alert sent successfully for '{item.name}' to {len(admin_emails)} admin user(s)"
         )
         return True
-        
+
     except Exception as e:
         logger.error(
             f"Failed to send low stock alert for '{item.name}': {str(e)}"
@@ -106,7 +106,7 @@ def send_password_reset_code_email(user_email: str, code: str, expiry_minutes: i
 def _get_admin_emails() -> List[str]:
     """
     Retrieve all admin-level user email addresses.
-    
+
     Returns:
         List[str]: Unique email addresses for admin-level users.
     """
@@ -121,13 +121,13 @@ def _get_admin_emails() -> List[str]:
 def _generate_low_stock_email_html(item) -> str:
     """
     Generate a formatted HTML email body for the low stock alert.
-    
+
     Creates a professional-looking email template with item details,
     current quantity, and a call-to-action for the admin to review.
-    
+
     Args:
         item: InventoryItem instance with low stock status
-        
+
     Returns:
         str: HTML formatted email content
     """
@@ -152,10 +152,10 @@ def _generate_low_stock_email_html(item) -> str:
                 <div class="alert-header">
                     <h2>⚠️  Inventory Alert: Low Stock Notification</h2>
                 </div>
-                
+
                 <p>Hello,</p>
                 <p>An inventory item has reached <strong>low stock</strong> status and requires attention.</p>
-                
+
                 <div class="item-details">
                     <div class="detail-row">
                         <span class="label">Item Name:</span>
@@ -178,11 +178,11 @@ def _generate_low_stock_email_html(item) -> str:
                         <span class="value" style="color: #ff9800; font-weight: bold;">{item.status}</span>
                     </div>
                 </div>
-                
+
                 <p>Please log in to the admin panel to review inventory levels and place a reorder if necessary.</p>
-                
-                <a href="http://127.0.0.1:8000/admin/inventory/inventoryitem/" class="cta-button">View in Admin Panel</a>
-                
+
+                <a href="{settings.ADMIN_PANEL_URL}" class="cta-button">View in Admin Panel</a>
+
                 <div class="footer">
                     <p>This is an automated notification from the Inventory Management System.</p>
                     <p>Please do not reply to this email.</p>
@@ -202,24 +202,24 @@ def _send_email_via_sendgrid(
 ) -> bool:
     """
     Send an email using the SendGrid API.
-    
+
     This is a low-level function that handles the actual SendGrid API call.
-    
+
     Args:
         to_email (str): Recipient email address
         subject (str): Email subject line
         html_content (str): HTML formatted email body
-        
+
     Returns:
         bool: True if email was sent successfully, False otherwise
-        
+
     Raises:
         Exception: If SendGrid API call fails
     """
     try:
         # Initialize SendGrid client with API key from settings
         sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
-        
+
         # Create Mail object with sender, recipient, subject, and HTML content
         message = Mail(
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -228,7 +228,7 @@ def _send_email_via_sendgrid(
             html_content=html_content,
             plain_text_content=plain_text_content,
         )
-        
+
         # Send the email via SendGrid API
         response = sg.send(message)
         message_id = response.headers.get("X-Message-Id") if response.headers else None
@@ -238,10 +238,10 @@ def _send_email_via_sendgrid(
             response.status_code,
             message_id,
         )
-        
+
         # SendGrid returns status code 202 for successful email acceptance
         return response.status_code == 202
-        
+
     except Exception as e:
         logger.error(f"SendGrid API error while sending to {to_email}: {str(e)}")
         raise
