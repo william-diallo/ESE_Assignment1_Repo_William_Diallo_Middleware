@@ -1,7 +1,8 @@
-from django.db.models import Q
-from .models import InventoryItem
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from rest_framework.exceptions import ValidationError
+
+from .models import InventoryItem
 
 
 def _is_admin_user(user) -> bool:

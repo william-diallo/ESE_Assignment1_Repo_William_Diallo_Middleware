@@ -1,17 +1,14 @@
-from rest_framework import viewsets, status
-from rest_framework.response import Response
+from django.core.exceptions import PermissionDenied
+from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
 from accounts.permissions import IsStaffOrReadOnly
+
 from .models import InventoryItem
 from .serialisers import InventoryItemSerializer, InventoryItemUpdateSerializer
-from .services import (
-    search_inventory_items,
-    create_inventory_item,
-    update_inventory_item,
-    delete_inventory_item,
-)
-from django.core.exceptions import PermissionDenied
+from .services import (create_inventory_item, delete_inventory_item,
+                       search_inventory_items, update_inventory_item)
 
 
 class InventoryItemViewSet(viewsets.ModelViewSet):

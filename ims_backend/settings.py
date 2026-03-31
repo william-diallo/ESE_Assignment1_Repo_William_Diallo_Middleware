@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,12 +40,12 @@ if sendgrid_env_path.exists():
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
 
 
 # Application definition
@@ -160,8 +161,8 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 # CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
-CORS_ALLOW_HEADERS = ['*']
-CORS_ALLOW_METHODS = ['*']
+CORS_ALLOW_HEADERS = ["*"]
+CORS_ALLOW_METHODS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -181,25 +182,25 @@ AUTH_USER_MODEL = "accounts.User"
 # EMAIL CONFIGURATION - SendGrid Integration
 # SendGrid is used to send transactional emails (low stock alerts) to admin users
 # API key is read from environment variable SENDGRID_API_KEY
-EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 # Disable sandbox mode so emails are actually delivered even in DEBUG mode.
 # The default behaviour of django-sendgrid-v5 is to enable sandbox mode when
 # DEBUG=True, which makes SendGrid report "delivered" while never sending.
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '').strip()
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "").strip()
 
 ADMIN_PANEL_URL = os.getenv(
-    'ADMIN_PANEL_URL', 'http://localhost:8000/admin/inventory/inventoryitem/'
+    "ADMIN_PANEL_URL", "http://localhost:8000/admin/inventory/inventoryitem/"
 )
 
 # Low Stock Alert Threshold
 # Items with quantity below this number are considered "low stock"
-LOW_STOCK_THRESHOLD = int(os.getenv('LOW_STOCK_THRESHOLD', '10'))
+LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "10"))
 
 # Password reset verification code expiration (minutes)
 PASSWORD_RESET_CODE_EXPIRY_MINUTES = int(
-    os.getenv('PASSWORD_RESET_CODE_EXPIRY_MINUTES', '10')
+    os.getenv("PASSWORD_RESET_CODE_EXPIRY_MINUTES", "10")
 )
 
 

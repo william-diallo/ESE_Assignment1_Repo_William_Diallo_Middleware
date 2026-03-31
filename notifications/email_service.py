@@ -4,13 +4,14 @@ This module handles all email communications in the Inventory Management System,
 particularly focusing on low stock alert emails sent to admin users.
 """
 
+import logging
+from typing import List
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
-from typing import List
-from django.db.models import Q
-import logging
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -73,13 +74,13 @@ def send_low_stock_alert_email(item):
         return True
 
     except Exception as e:
-        logger.error(
-            f"Failed to send low stock alert for '{item.name}': {str(e)}"
-        )
+        logger.error(f"Failed to send low stock alert for '{item.name}': {str(e)}")
         return False
 
 
-def send_password_reset_code_email(user_email: str, code: str, expiry_minutes: int) -> bool:
+def send_password_reset_code_email(
+    user_email: str, code: str, expiry_minutes: int
+) -> bool:
     """Send a password reset verification code to a single user email."""
 
     if not settings.SENDGRID_API_KEY:
@@ -112,9 +113,12 @@ def _get_admin_emails() -> List[str]:
     """
     # Admin-level users are users explicitly marked ADMIN by role,
     # plus privileged Django users (staff/superuser).
-    admin_users = User.objects.filter(
-        Q(role="ADMIN") | Q(is_staff=True) | Q(is_superuser=True)
-    ).exclude(email="").values_list("email", flat=True).distinct()
+    admin_users = (
+        User.objects.filter(Q(role="ADMIN") | Q(is_staff=True) | Q(is_superuser=True))
+        .exclude(email="")
+        .values_list("email", flat=True)
+        .distinct()
+    )
     return list(admin_users)
 
 

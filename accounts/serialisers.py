@@ -71,7 +71,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6, min_length=6)
-    new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    new_password = serializers.CharField(
+        write_only=True, validators=[validate_password]
+    )
 
     def validate_email(self, value):
         # Normalize leading/trailing whitespace before lookup.
@@ -84,7 +86,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email__iexact=email)
         except User.DoesNotExist as exc:
-            raise serializers.ValidationError({"email": "No account found for this email."}) from exc
+            raise serializers.ValidationError(
+                {"email": "No account found for this email."}
+            ) from exc
 
         # Grab the latest unused matching code for this user.
         reset_code = (

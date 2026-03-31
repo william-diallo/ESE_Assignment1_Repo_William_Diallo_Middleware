@@ -23,7 +23,9 @@ class User(AbstractUser):
 class PasswordResetCode(models.Model):
     """Stores one-time reset codes sent to users for password reset."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_reset_codes")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="password_reset_codes"
+    )
     code = models.CharField(max_length=6)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)

@@ -3,8 +3,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
-from rest_framework import generics
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -70,7 +69,9 @@ class PasswordResetRequestView(APIView):
 
         # Generate a simple six-digit code expected by the password reset page.
         code = f"{random.randint(0, 999999):06d}"
-        expiry_minutes = int(getattr(settings, "PASSWORD_RESET_CODE_EXPIRY_MINUTES", 10))
+        expiry_minutes = int(
+            getattr(settings, "PASSWORD_RESET_CODE_EXPIRY_MINUTES", 10)
+        )
         expires_at = timezone.now() + timedelta(minutes=expiry_minutes)
 
         PasswordResetCode.objects.create(user=user, code=code, expires_at=expires_at)

@@ -9,7 +9,6 @@ from notifications.email_service import send_low_stock_alert_email
 
 from .models import InventoryItem
 
-
 audit_logger = logging.getLogger("inventory.audit")
 
 
