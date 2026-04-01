@@ -14,16 +14,9 @@ from inventory.services import (
     search_inventory_items,
     update_inventory_item,
 )
+from tests.utils import create_test_user
 
 User = get_user_model()
-
-
-def create_test_user(email: str, password: str, role: str = "STAFF"):
-    """Create a user without relying on create_user manager signature."""
-    user = User.objects.create(email=email, role=role)
-    user.set_password(password)
-    user.save(update_fields=["password"])
-    return user
 
 
 class InventoryModelUnitTests(TestCase):

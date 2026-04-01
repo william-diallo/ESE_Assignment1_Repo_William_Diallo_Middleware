@@ -2,14 +2,9 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 
+from accounts.roles import has_privileged_role
+
 from .models import InventoryItem
-
-
-def _is_admin_user(user) -> bool:
-    """Return True when user has admin/staff privileges for inventory writes."""
-
-    user_role = str(getattr(user, "role", "")).upper()
-    return user.is_staff or user.is_superuser or user_role in {"ADMIN", "STAFF"}
 
 
 def search_inventory_items(query):
@@ -65,7 +60,7 @@ def create_inventory_item(user, name, description, category, quantity):
         PermissionDenied: If the user is not an admin.
     """
 
-    if not _is_admin_user(user):
+    if not has_privileged_role(user):
         raise PermissionDenied("Only admin users can create inventory items.")
 
     try:
@@ -89,7 +84,7 @@ def update_inventory_item(user, item: InventoryItem, **fields):
     """
     Update an InventoryItem only if the user is an admin.
     """
-    if not _is_admin_user(user):
+    if not has_privileged_role(user):
         raise PermissionDenied("Only admin users can update inventory items.")
 
     allowed_fields = {"name", "description", "category", "quantity"}
@@ -121,7 +116,7 @@ def delete_inventory_item(user, item: InventoryItem):
     """
     Delete an InventoryItem only if the user is an admin.
     """
-    if not _is_admin_user(user):
+    if not has_privileged_role(user):
         raise PermissionDenied("Only admin users can delete inventory items.")
 
     item.delete()

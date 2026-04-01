@@ -22,11 +22,23 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
         return InventoryItemSerializer
 
     def get_permissions(self):
-        # Only staff can create items
-        if self.action == "create":
-            return [IsStaffOrReadOnly()]
-
         return [IsStaffOrReadOnly()]
+
+    def _handle_write_result(self, operation, forbidden_detail):
+        """Run a write operation and translate service exceptions to responses."""
+
+        try:
+            return operation()
+        except PermissionDenied:
+            return Response(
+                {"detail": forbidden_detail},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except ValidationError as exc:
+            return Response(
+                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def get_throttles(self):
         # Write operations get a stricter per-user/IP budget to prevent abuse.
@@ -37,7 +49,8 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Create an inventory item only if the user is an admin."""
-        try:
+
+        def operation():
             item = create_inventory_item(
                 user=request.user,
                 name=request.data.get("name"),
@@ -49,16 +62,10 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(item)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        except PermissionDenied:
-            return Response(
-                {"detail": "Only admin users can create inventory items."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        except ValidationError as exc:
-            return Response(
-                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return self._handle_write_result(
+            operation,
+            "Only admin users can create inventory items.",
+        )
 
     def get_queryset(self):
         queryset = InventoryItem.objects.all()
@@ -86,14 +93,14 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
         """Delete an inventory item only if the user is an admin/staff user."""
         item = self.get_object()
 
-        try:
+        def operation():
             delete_inventory_item(request.user, item)
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except PermissionDenied:
-            return Response(
-                {"detail": "Only admin users can delete inventory items."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+
+        return self._handle_write_result(
+            operation,
+            "Only admin users can delete inventory items.",
+        )
 
     def update(self, request, *args, **kwargs):
         """Update all editable attributes of an inventory item (PUT)."""
@@ -101,7 +108,7 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(item, data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        try:
+        def operation():
             updated_item = update_inventory_item(
                 request.user,
                 item,
@@ -112,16 +119,11 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
                 context=self.get_serializer_context(),
             )
             return Response(response_serializer.data, status=status.HTTP_200_OK)
-        except PermissionDenied:
-            return Response(
-                {"detail": "Only admin users can update inventory items."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        except ValidationError as exc:
-            return Response(
-                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+
+        return self._handle_write_result(
+            operation,
+            "Only admin users can update inventory items.",
+        )
 
     def partial_update(self, request, *args, **kwargs):
         """Update selected editable attributes of an inventory item (PATCH)."""
@@ -129,7 +131,7 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(item, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        try:
+        def operation():
             updated_item = update_inventory_item(
                 request.user,
                 item,
@@ -140,13 +142,8 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
                 context=self.get_serializer_context(),
             )
             return Response(response_serializer.data, status=status.HTTP_200_OK)
-        except PermissionDenied:
-            return Response(
-                {"detail": "Only admin users can update inventory items."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        except ValidationError as exc:
-            return Response(
-                {"detail": exc.detail if hasattr(exc, "detail") else str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+
+        return self._handle_write_result(
+            operation,
+            "Only admin users can update inventory items.",
+        )

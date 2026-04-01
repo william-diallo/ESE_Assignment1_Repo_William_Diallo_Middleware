@@ -13,16 +13,9 @@ from accounts.models import PasswordResetCode, User
 from accounts.permissions import AllowAnonymousCreate, IsStaffOrReadOnly
 from accounts.serialisers import PasswordResetConfirmSerializer, RegisterSerializer
 from notifications.email_service import send_password_reset_success_email
+from tests.utils import create_test_user
 
 UserModel = get_user_model()
-
-
-def create_test_user(email: str, password: str, role: str = "STAFF"):
-    """Create a user without relying on create_user manager signature."""
-    user = UserModel.objects.create(email=email, role=role)
-    user.set_password(password)
-    user.save(update_fields=["password"])
-    return user
 
 
 class UserAndResetCodeModelTests(TestCase):
@@ -155,7 +148,7 @@ class PasswordResetViewUnitTests(TestCase):
             email="resetuser@example.com", password="OldPass123!", role="STAFF"
         )
 
-    @patch("accounts.views.send_password_reset_code_email", return_value=True)
+    @patch("accounts.services.send_password_reset_code_email", return_value=True)
     def test_password_reset_request_unknown_email_returns_generic_success(self, mocked_sender):
         # Unknown emails should still return a generic 200 to prevent enumeration.
         response = self.client.post(
@@ -171,7 +164,7 @@ class PasswordResetViewUnitTests(TestCase):
         )
         mocked_sender.assert_not_called()
 
-    @patch("accounts.views.send_password_reset_success_email", return_value=True)
+    @patch("accounts.services.send_password_reset_success_email", return_value=True)
     def test_password_reset_confirm_sends_success_email(self, mocked_confirmation_sender):
         # A valid code should reset password and trigger confirmation email.
         reset_code = PasswordResetCode.objects.create(
@@ -208,7 +201,7 @@ class EmailServiceUnitTests(TestCase):
         self.assertFalse(send_password_reset_success_email("nobody@example.com"))
 
     @override_settings(SENDGRID_API_KEY="SG.test", DEFAULT_FROM_EMAIL="sender@example.com")
-    @patch("notifications.email_service._send_email_via_sendgrid", return_value=True)
+    @patch("notifications.workflows.send_email_via_sendgrid", return_value=True)
     def test_success_email_calls_sendgrid_helper(self, mocked_send):
         sent = send_password_reset_success_email("target@example.com")
         self.assertTrue(sent)
