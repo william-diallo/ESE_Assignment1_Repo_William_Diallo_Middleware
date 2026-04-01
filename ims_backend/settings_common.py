@@ -68,6 +68,7 @@ POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 POSTGRES_TEST_USER = os.getenv("POSTGRES_TEST_USER", "test_user")
 POSTGRES_TEST_PASSWORD = os.getenv("POSTGRES_TEST_PASSWORD", "test")
@@ -76,22 +77,33 @@ if "test" in sys.argv:
     POSTGRES_USER = POSTGRES_TEST_USER
     POSTGRES_PASSWORD = POSTGRES_TEST_PASSWORD
 
-if not (POSTGRES_DB and POSTGRES_USER and POSTGRES_PASSWORD):
-    raise RuntimeError(
-        "PostgreSQL configuration is required. "
-        "Set POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD in your environment."
-    )
+if DATABASE_URL:
+    import dj_database_url
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": POSTGRES_DB,
-        "USER": POSTGRES_USER,
-        "PASSWORD": POSTGRES_PASSWORD,
-        "HOST": POSTGRES_HOST,
-        "PORT": POSTGRES_PORT,
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=os.getenv("DJANGO_ENV", "dev").lower() == "prod",
+        )
     }
-}
+else:
+    if not (POSTGRES_DB and POSTGRES_USER and POSTGRES_PASSWORD):
+        raise RuntimeError(
+            "PostgreSQL configuration is required. "
+            "Set DATABASE_URL or POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD in your environment."
+        )
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": POSTGRES_DB,
+            "USER": POSTGRES_USER,
+            "PASSWORD": POSTGRES_PASSWORD,
+            "HOST": POSTGRES_HOST,
+            "PORT": POSTGRES_PORT,
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
