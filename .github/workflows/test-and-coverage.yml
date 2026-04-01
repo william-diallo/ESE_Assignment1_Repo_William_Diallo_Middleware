@@ -15,31 +15,31 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: ims_db
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d ims_db"
+          --health-cmd "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     env:
-      SECRET_KEY: github-actions-secret-key
+      SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       DEBUG: "True"
-      POSTGRES_DB: ims_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
       # Force Django test runs to use this test role.
-      POSTGRES_TEST_USER: postgres
-      POSTGRES_TEST_PASSWORD: postgres
-      SENDGRID_API_KEY: ""
-      DEFAULT_FROM_EMAIL: noreply@example.com
-      ADMIN_PANEL_URL: http://localhost:8000/admin/inventory/inventoryitem/
+      POSTGRES_TEST_USER: ${{ secrets.POSTGRES_TEST_USER }}
+      POSTGRES_TEST_PASSWORD: ${{ secrets.POSTGRES_TEST_PASSWORD }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+      ADMIN_PANEL_URL: ${{ secrets.ADMIN_PANEL_URL }}
 
     steps:
       - name: Checkout repository
@@ -63,10 +63,18 @@ jobs:
             psycopg2-binary \
             coverage
 
+      - name: Mask secret values in logs
+        shell: bash
+        run: |
+          echo "::add-mask::${SECRET_KEY}"
+          echo "::add-mask::${POSTGRES_PASSWORD}"
+          echo "::add-mask::${POSTGRES_TEST_PASSWORD}"
+          echo "::add-mask::${SENDGRID_API_KEY}"
+
       - name: Wait for PostgreSQL
         run: |
           for i in {1..20}; do
-            pg_isready -h localhost -p 5432 -U postgres -d ims_db && break
+            pg_isready -h localhost -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" && break
             sleep 2
           done
 
