@@ -7,7 +7,14 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from .throttles import (
+    LoginRateThrottle,
+    PasswordResetRateThrottle,
+    RegisterRateThrottle,
+    TokenRefreshRateThrottle,
+)
 
 from notifications.email_service import send_password_reset_code_email
 
@@ -22,6 +29,8 @@ class CaseInsensitiveTokenObtainPairView(TokenObtainPairView):
     """JWT login view that treats email matching as case-insensitive."""
 
     serializer_class = CaseInsensitiveTokenObtainPairSerializer
+    # Strict limit to block brute-force credential guessing.
+    throttle_classes = [LoginRateThrottle]
 
 
 class RegisterView(generics.CreateAPIView):
@@ -30,6 +39,8 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = []  # Allow anyone to access this endpoint
+    # Prevent automated account-creation spam.
+    throttle_classes = [RegisterRateThrottle]
 
 
 class ProfileView(APIView):
@@ -42,10 +53,19 @@ class ProfileView(APIView):
         return Response(serializer.data)
 
 
+class ThrottledTokenRefreshView(TokenRefreshView):
+    """Token refresh endpoint with rate limiting to prevent token farming."""
+
+    # Prevents rapid re-issuance of access tokens from long-lived refresh tokens.
+    throttle_classes = [TokenRefreshRateThrottle]
+
+
 class PasswordResetRequestView(APIView):
     """Send a one-time code to the user's email for password reset."""
 
     permission_classes = []
+    # Prevent email flooding and OTP code enumeration.
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -106,6 +126,8 @@ class PasswordResetConfirmView(APIView):
     """Verify code and replace the user's old password with the new one."""
 
     permission_classes = []
+    # Same scope as the request view — share the per-user/IP budget.
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)

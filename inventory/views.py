@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from accounts.permissions import IsStaffOrReadOnly
+from accounts.throttles import InventoryWriteRateThrottle
 
 from .models import InventoryItem
 from .serialisers import InventoryItemSerializer, InventoryItemUpdateSerializer
@@ -26,6 +27,13 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
             return [IsStaffOrReadOnly()]
 
         return [IsStaffOrReadOnly()]
+
+    def get_throttles(self):
+        # Write operations get a stricter per-user/IP budget to prevent abuse.
+        # Read operations fall through to the global AnonRateThrottle / UserRateThrottle.
+        if self.action in {"create", "update", "partial_update", "destroy"}:
+            return [InventoryWriteRateThrottle()]
+        return super().get_throttles()
 
     def create(self, request, *args, **kwargs):
         """Create an inventory item only if the user is an admin."""

@@ -3,14 +3,14 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (CaseInsensitiveTokenObtainPairView,
                     PasswordResetConfirmView, PasswordResetRequestView,
-                    ProfileView, RegisterView)
+                    ProfileView, RegisterView, ThrottledTokenRefreshView)
 
 urlpatterns = [
     # User registration
     path("register/", RegisterView.as_view(), name="register"),
     # JWT authentication endpoints
     path("login/", CaseInsensitiveTokenObtainPairView.as_view(), name="login"),
-    path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("refresh/", ThrottledTokenRefreshView.as_view(), name="token_refresh"),
     # Profile endpoint (requires a valid access token)
     path("me/", ProfileView.as_view(), name="profile"),
     # Password reset flow: request a code and confirm it with a new password

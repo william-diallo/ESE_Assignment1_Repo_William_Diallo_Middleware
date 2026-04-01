@@ -10,42 +10,31 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-import os
+from datetime import timedelta
 from pathlib import Path
-
+import os
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env and optional sendgrid.env file.
-load_dotenv(BASE_DIR / ".env")
-
-sendgrid_env_path = BASE_DIR / "sendgrid.env"
-if sendgrid_env_path.exists():
-    # First try UTF-8, then retry UTF-16 if key is still missing.
-    try:
-        load_dotenv(sendgrid_env_path, override=True)
-    except UnicodeDecodeError:
-        pass
-
-    if not os.getenv("SENDGRID_API_KEY"):
-        try:
-            load_dotenv(sendgrid_env_path, override=True, encoding="utf-16")
-        except UnicodeDecodeError:
-            pass
+# Load environment variables from .env file
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
+DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
+# Treat non-debug mode as production-like for security defaults.
+IS_PRODUCTION = not DEBUG
+
+ALLOWED_HOSTS = ['', '0.0.0.0:8000', 'localhost']
 
 
 # Application definition
@@ -59,12 +48,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party apps for API support
     "rest_framework",  # authentication and API building
-    "rest_framework_simplejwt",
     "corsheaders",
     # Local apps
     "accounts",
-    "inventory.apps.InventoryConfig",
-    "notifications",
+    "inventory",
 ]
 
 MIDDLEWARE = [
@@ -78,6 +65,7 @@ MIDDLEWARE = [
     "accounts.middleware.RequestLoggingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    
 ]
 
 ROOT_URLCONF = "ims_backend.urls"
@@ -105,23 +93,10 @@ WSGI_APPLICATION = "ims_backend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "ims_db"),
-        "USER": os.getenv("POSTGRES_USER", "ims_user"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
-# Fallback to sqlite for local development if PostgreSQL is not available (optional)
-if os.getenv("USE_SQLITE", "False").lower() in ("true", "1", "yes"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
 
 
 # Password validation
@@ -160,70 +135,73 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-# CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
-CORS_ALLOW_HEADERS = ["*"]
-CORS_ALLOW_METHODS = ["*"]
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOW_ALL_ORIGINS = True  # later restrict this in production
+CORS_ALLOW_HEADERS = ['*']
+CORS_ALLOW_METHODS = ['*']
 
+# Cookie and browser security hardening.
+# 'Secure' ensures cookies are only sent over HTTPS in production.
+SESSION_COOKIE_SECURE = IS_PRODUCTION
+CSRF_COOKIE_SECURE = IS_PRODUCTION
+
+# 'HttpOnly' prevents JavaScript access to the session cookie.
+SESSION_COOKIE_HTTPONLY = True
+
+# 'Lax' allows normal navigation while reducing CSRF attack surface.
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# Keep CSRF token readable by browser scripts/forms when needed.
+CSRF_COOKIE_HTTPONLY = False
+
+# Use host-prefixed cookie names in production to reduce cookie fixation risk.
+SESSION_COOKIE_NAME = "__Host-sessionid" if IS_PRODUCTION else "sessionid"
+CSRF_COOKIE_NAME = "__Host-csrftoken" if IS_PRODUCTION else "csrftoken"
+
+# Restrict cookie scope and session lifetime.
+SESSION_COOKIE_PATH = "/"
+CSRF_COOKIE_PATH = "/"
+SESSION_COOKIE_AGE = 60 * 60  # 1 hour
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Enforce HTTPS redirects and secure transport options in production.
+SECURE_SSL_REDIRECT = IS_PRODUCTION
+SECURE_HSTS_SECONDS = 31536000 if IS_PRODUCTION else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = IS_PRODUCTION
+SECURE_HSTS_PRELOAD = IS_PRODUCTION
+
+# Prevent MIME-type sniffing and framing-based clickjacking.
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    # ---------------------------------------------------------------------------
+    # Global rate-limiting defaults applied to every endpoint.
+    # AnonRateThrottle keys by IP; UserRateThrottle keys by authenticated user.
+    # Sensitive endpoints override these via ScopedRateThrottle (see throttles.py).
+    # ---------------------------------------------------------------------------
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",   # unauthenticated requests
+        "rest_framework.throttling.UserRateThrottle",   # authenticated requests
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        # --- Global baselines ---
+        "anon": "100/hour",           # anonymous users across all endpoints
+        "user": "1000/hour",          # authenticated users across all endpoints
+        # --- Auth endpoints (scoped, stricter) ---
+        "login": "5/minute",          # brute-force login protection
+        "register": "10/hour",        # prevent automated account-creation spam
+        "password_reset": "5/hour",   # prevent email flooding / OTP enumeration
+        "token_refresh": "30/minute", # prevent token farming
+        # --- Inventory write operations ---
+        "inventory_write": "60/hour", # create / update / delete on inventory items
+    },
 }
 
 
 AUTH_USER_MODEL = "accounts.User"
 
-# EMAIL CONFIGURATION - SendGrid Integration
-# SendGrid is used to send transactional emails (low stock alerts) to admin users
-# API key is read from environment variable SENDGRID_API_KEY
-EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
-# Disable sandbox mode so emails are actually delivered even in DEBUG mode.
-# The default behaviour of django-sendgrid-v5 is to enable sandbox mode when
-# DEBUG=True, which makes SendGrid report "delivered" while never sending.
-SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "").strip()
-
-ADMIN_PANEL_URL = os.getenv(
-    "ADMIN_PANEL_URL", "http://localhost:8000/admin/inventory/inventoryitem/"
-)
-
-# Low Stock Alert Threshold
-# Items with quantity below this number are considered "low stock"
-LOW_STOCK_THRESHOLD = int(os.getenv("LOW_STOCK_THRESHOLD", "10"))
-
-# Password reset verification code expiration (minutes)
-PASSWORD_RESET_CODE_EXPIRY_MINUTES = int(
-    os.getenv("PASSWORD_RESET_CODE_EXPIRY_MINUTES", "10")
-)
-
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "audit_plain": {
-            "format": "%(message)s",
-        },
-    },
-    "handlers": {
-        "inventory_audit_file": {
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR / "inventory_audit.log",
-            "formatter": "audit_plain",
-        },
-    },
-    "loggers": {
-        "inventory.audit": {
-            "handlers": ["inventory_audit_file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
