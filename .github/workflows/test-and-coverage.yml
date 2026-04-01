@@ -1,0 +1,100 @@
+name: Test and Coverage
+
+on:
+  push:
+    branches: [main, Security_Enhancements]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test_and_coverage:
+    name: Run tests and generate coverage reports
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ims_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ims_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: github-actions-secret-key
+      DEBUG: "True"
+      POSTGRES_DB: ims_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      # Force Django test runs to use this test role.
+      POSTGRES_TEST_USER: postgres
+      POSTGRES_TEST_PASSWORD: postgres
+      SENDGRID_API_KEY: ""
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      ADMIN_PANEL_URL: http://localhost:8000/admin/inventory/inventoryitem/
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            Django==6.0.3 \
+            djangorestframework \
+            djangorestframework-simplejwt \
+            django-cors-headers \
+            python-dotenv \
+            sendgrid \
+            psycopg2-binary \
+            coverage
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..20}; do
+            pg_isready -h localhost -p 5432 -U postgres -d ims_db && break
+            sleep 2
+          done
+
+      - name: Run migrations
+        run: python manage.py migrate
+
+      - name: Run tests with coverage
+        run: python -m coverage run --rcfile=.coveragerc manage.py test
+
+      - name: Create coverage reports (terminal + HTML + markdown)
+        run: |
+          python -m coverage report --rcfile=.coveragerc
+          python -m coverage html --rcfile=.coveragerc
+          python -m coverage json --rcfile=.coveragerc -o coverage.json
+          python scripts/generate_coverage_markdown.py coverage.json coverage-summary.md coverage-details.md
+
+      - name: Publish markdown summary to workflow output
+        run: |
+          cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          cat coverage-details.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage-summary.md
+            coverage-details.md
+            coverage.json
+            htmlcov/

@@ -12,11 +12,13 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .throttles import (
     LoginRateThrottle,
     PasswordResetRateThrottle,
+    ProfileRateThrottle,
     RegisterRateThrottle,
     TokenRefreshRateThrottle,
 )
 
-from notifications.email_service import send_password_reset_code_email
+from notifications.email_service import (send_password_reset_code_email,
+                                         send_password_reset_success_email)
 
 from .models import PasswordResetCode, User
 from .serialisers import (CaseInsensitiveTokenObtainPairSerializer,
@@ -47,6 +49,7 @@ class ProfileView(APIView):
     """API endpoint to return the currently authenticated user's profile."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ProfileRateThrottle]
 
     def get(self, request):
         serializer = UserSerializer(request.user)
@@ -146,7 +149,11 @@ class PasswordResetConfirmView(APIView):
         reset_code.save(update_fields=["is_used"])
         PasswordResetCode.objects.filter(user=user, is_used=False).update(is_used=True)
 
-        return Response(
-            {"detail": "Password has been reset successfully."},
-            status=status.HTTP_200_OK,
-        )
+        # Best-effort security notification after password reset completion.
+        # Do not block a successful reset if notification delivery fails.
+        confirmation_email_sent = send_password_reset_success_email(user.email)
+
+        response_data = {"detail": "Password has been reset successfully."}
+        if settings.DEBUG:
+            response_data["confirmation_email_sent"] = confirmation_email_sent
+        return Response(response_data, status=status.HTTP_200_OK)

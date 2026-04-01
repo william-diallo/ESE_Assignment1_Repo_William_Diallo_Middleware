@@ -1,39 +1,46 @@
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 
 # ---------------------------------------------------------------------------
-# Custom scoped throttle classes for sensitive endpoints.
+# Custom throttle classes for sensitive endpoints.
 # Rates are configured via settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'].
-# ScopedRateThrottle uses a per-user cache key for authenticated requests and
-# a per-IP cache key for anonymous requests.
+#
+# AnonRateThrottle -> keys by IP for unauthenticated clients.
+# UserRateThrottle -> keys by user ID for authenticated clients.
 # ---------------------------------------------------------------------------
 
 
-class LoginRateThrottle(ScopedRateThrottle):
-    """Strict per-IP/user limit on login attempts to mitigate brute-force attacks."""
+class LoginRateThrottle(AnonRateThrottle):
+    """Strict per-IP limit on login attempts to mitigate brute-force attacks."""
 
     scope = "login"
 
 
-class RegisterRateThrottle(ScopedRateThrottle):
+class RegisterRateThrottle(AnonRateThrottle):
     """Limit new account registrations to prevent automated account-creation spam."""
 
     scope = "register"
 
 
-class PasswordResetRateThrottle(ScopedRateThrottle):
+class PasswordResetRateThrottle(AnonRateThrottle):
     """Limit password-reset requests to prevent email flooding and code enumeration."""
 
     scope = "password_reset"
 
 
-class TokenRefreshRateThrottle(ScopedRateThrottle):
+class TokenRefreshRateThrottle(AnonRateThrottle):
     """Limit token-refresh calls to reduce token-farming and session-abuse risk."""
 
     scope = "token_refresh"
 
 
-class InventoryWriteRateThrottle(ScopedRateThrottle):
+class InventoryWriteRateThrottle(UserRateThrottle):
     """Limit write operations (create / update / delete) on inventory items."""
 
     scope = "inventory_write"
+
+
+class ProfileRateThrottle(UserRateThrottle):
+    """Limit requests to the authenticated profile endpoint."""
+
+    scope = "profile"

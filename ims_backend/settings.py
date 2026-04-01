@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -34,7 +35,7 @@ DEBUG = True
 # Treat non-debug mode as production-like for security defaults.
 IS_PRODUCTION = not DEBUG
 
-ALLOWED_HOSTS = ['', '0.0.0.0:8000', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0:8000', 'localhost']
 
 
 # Application definition
@@ -91,10 +92,36 @@ WSGI_APPLICATION = "ims_backend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+# Dedicated credentials for Django test database operations.
+# Defaults align with your requested testing role: test_user / test.
+POSTGRES_TEST_USER = os.getenv("POSTGRES_TEST_USER", "test_user")
+POSTGRES_TEST_PASSWORD = os.getenv("POSTGRES_TEST_PASSWORD", "test")
+
+# Ensure test commands connect with the dedicated testing database role.
+if "test" in sys.argv:
+    POSTGRES_USER = POSTGRES_TEST_USER
+    POSTGRES_PASSWORD = POSTGRES_TEST_PASSWORD
+
+if not (POSTGRES_DB and POSTGRES_USER and POSTGRES_PASSWORD):
+    raise RuntimeError(
+        "PostgreSQL configuration is required. "
+        "Set POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD in your environment."
+    )
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": POSTGRES_DB,
+        "USER": POSTGRES_USER,
+        "PASSWORD": POSTGRES_PASSWORD,
+        "HOST": POSTGRES_HOST,
+        "PORT": POSTGRES_PORT,
     }
 }
 
@@ -199,8 +226,21 @@ REST_FRAMEWORK = {
         "token_refresh": "30/minute", # prevent token farming
         # --- Inventory write operations ---
         "inventory_write": "60/hour", # create / update / delete on inventory items
+        # --- Authenticated profile endpoint ---
+        "profile": "120/hour",        # throttle /api/auth/me/ access
     },
 }
+
+
+# Email / notification settings (used by notifications/email_service.py)
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
+ADMIN_PANEL_URL = os.getenv(
+    "ADMIN_PANEL_URL", "http://localhost:8000/admin/inventory/inventoryitem/"
+)
+PASSWORD_RESET_CODE_EXPIRY_MINUTES = int(
+    os.getenv("PASSWORD_RESET_CODE_EXPIRY_MINUTES", "10")
+)
 
 
 AUTH_USER_MODEL = "accounts.User"

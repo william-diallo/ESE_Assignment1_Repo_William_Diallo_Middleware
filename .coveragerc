@@ -1,0 +1,22 @@
+[run]
+branch = True
+source =
+    accounts
+    inventory
+    notifications
+omit =
+    */migrations/*
+    */tests.py
+    manage.py
+
+[report]
+show_missing = True
+skip_covered = True
+precision = 2
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+
+[html]
+directory = htmlcov
+title = IMS Backend Coverage Report

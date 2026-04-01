@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+def _get_setting(name: str, default=""):
+    """Safely read Django settings attributes that may be absent."""
+    return getattr(settings, name, default)
+
+
 def send_low_stock_alert_email(item):
     """
     Send an email alert to all admin users when an inventory item reaches low stock.
@@ -36,7 +41,7 @@ def send_low_stock_alert_email(item):
     """
 
     # Verify that SendGrid API key is configured
-    if not settings.SENDGRID_API_KEY:
+    if not _get_setting("SENDGRID_API_KEY"):
         logger.warning(
             f"SendGrid API key not configured. Low stock alert for '{item.name}' "
             "was not sent. Please set SENDGRID_API_KEY in environment variables."
@@ -83,7 +88,7 @@ def send_password_reset_code_email(
 ) -> bool:
     """Send a password reset verification code to a single user email."""
 
-    if not settings.SENDGRID_API_KEY:
+    if not _get_setting("SENDGRID_API_KEY"):
         logger.warning(
             "SendGrid API key not configured. Password reset code email was not sent."
         )
@@ -101,6 +106,33 @@ def send_password_reset_code_email(
         return True
     except Exception as e:
         logger.error(f"Failed to send password reset code to {user_email}: {str(e)}")
+        return False
+
+
+def send_password_reset_success_email(user_email: str) -> bool:
+    """Send a confirmation email after a user's password has been reset."""
+
+    if not _get_setting("SENDGRID_API_KEY"):
+        logger.warning(
+            "SendGrid API key not configured. Password reset success email was not sent."
+        )
+        return False
+
+    try:
+        subject = "Your Password Was Reset"
+        html_content = _generate_password_reset_success_email_html()
+        _send_email_via_sendgrid(
+            to_email=user_email,
+            subject=subject,
+            html_content=html_content,
+            plain_text_content=_generate_password_reset_success_email_text(),
+        )
+        logger.info(f"Password reset confirmation email sent to {user_email}")
+        return True
+    except Exception as e:
+        logger.error(
+            f"Failed to send password reset confirmation to {user_email}: {str(e)}"
+        )
         return False
 
 
@@ -185,7 +217,7 @@ def _generate_low_stock_email_html(item) -> str:
 
                 <p>Please log in to the admin panel to review inventory levels and place a reorder if necessary.</p>
 
-                <a href="{settings.ADMIN_PANEL_URL}" class="cta-button">View in Admin Panel</a>
+                <a href="{_get_setting('ADMIN_PANEL_URL', '#')}" class="cta-button">View in Admin Panel</a>
 
                 <div class="footer">
                     <p>This is an automated notification from the Inventory Management System.</p>
@@ -222,11 +254,11 @@ def _send_email_via_sendgrid(
     """
     try:
         # Initialize SendGrid client with API key from settings
-        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        sg = SendGridAPIClient(_get_setting("SENDGRID_API_KEY"))
 
         # Create Mail object with sender, recipient, subject, and HTML content
         message = Mail(
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=_get_setting("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
             to_emails=to_email,
             subject=subject,
             html_content=html_content,
@@ -256,6 +288,22 @@ def _generate_password_reset_email_html(code: str, expiry_minutes: int) -> str:
     return (
         f"<strong>Your password reset code is {code}. "
         f"It expires in {expiry_minutes} minutes.</strong>"
+    )
+
+
+def _generate_password_reset_success_email_html() -> str:
+    """Generate HTML content for password-reset completion confirmation."""
+    return (
+        "<strong>Your password was reset successfully.</strong>"
+        "<br><br>If you did not make this change, please secure your account immediately."
+    )
+
+
+def _generate_password_reset_success_email_text() -> str:
+    """Generate plain-text content for password-reset completion confirmation."""
+    return (
+        "Your password was reset successfully.\n\n"
+        "If you did not make this change, please secure your account immediately.\n"
     )
 
 
