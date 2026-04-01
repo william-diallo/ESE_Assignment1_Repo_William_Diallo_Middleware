@@ -18,8 +18,10 @@ def has_privileged_role(user) -> bool:
     if not user:
         return False
 
-    return bool(
-        getattr(user, "is_staff", False)
-        or getattr(user, "is_superuser", False)
-        or get_normalized_role(user) in PRIVILEGED_ROLES
+    return any(
+        (
+            getattr(user, "is_staff", False),
+            getattr(user, "is_superuser", False),
+            get_normalized_role(user) in PRIVILEGED_ROLES,
+        )
     )
