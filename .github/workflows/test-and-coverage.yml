@@ -15,9 +15,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ims_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
@@ -27,19 +27,10 @@ jobs:
           --health-retries 5
 
     env:
-      SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       DEBUG: "True"
-      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
-      # Force Django test runs to use this test role.
-      POSTGRES_TEST_USER: ${{ secrets.POSTGRES_TEST_USER }}
-      POSTGRES_TEST_PASSWORD: ${{ secrets.POSTGRES_TEST_PASSWORD }}
-      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-      DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
-      ADMIN_PANEL_URL: ${{ secrets.ADMIN_PANEL_URL }}
+      CI_DOTENV: ${{ secrets.CI_DOTENV }}
 
     steps:
       - name: Checkout repository
@@ -63,23 +54,38 @@ jobs:
             psycopg2-binary \
             coverage
 
-      - name: Validate required secrets
+      - name: Load environment from .env
         shell: bash
         run: |
-          required=(
-            SECRET_KEY
-            POSTGRES_DB
-            POSTGRES_USER
-            POSTGRES_PASSWORD
-            POSTGRES_TEST_USER
-            POSTGRES_TEST_PASSWORD
-            DEFAULT_FROM_EMAIL
-            ADMIN_PANEL_URL
-          )
+          if [ ! -f .env ]; then
+            if [ -n "$CI_DOTENV" ]; then
+              printf '%s\n' "$CI_DOTENV" > .env
+            else
+              echo "No .env file found and CI_DOTENV secret is empty."
+              exit 1
+            fi
+          fi
 
+          while IFS= read -r line || [ -n "$line" ]; do
+            [ -z "$line" ] && continue
+            case "$line" in
+              \#*) continue ;;
+            esac
+            if [[ "$line" == *=* ]]; then
+              key="${line%%=*}"
+              value="${line#*=}"
+              key="$(echo "$key" | xargs)"
+              echo "$key=$value" >> "$GITHUB_ENV"
+            fi
+          done < .env
+
+      - name: Validate required .env keys
+        shell: bash
+        run: |
+          required=(SECRET_KEY POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD POSTGRES_TEST_USER POSTGRES_TEST_PASSWORD DEFAULT_FROM_EMAIL ADMIN_PANEL_URL)
           for key in "${required[@]}"; do
             if [ -z "${!key}" ]; then
-              echo "Missing required secret: $key"
+              echo "Missing required .env key: $key"
               exit 1
             fi
           done
@@ -95,7 +101,7 @@ jobs:
       - name: Wait for PostgreSQL
         run: |
           for i in {1..20}; do
-            pg_isready -h localhost -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" && break
+            pg_isready -h localhost -p 5432 -U postgres -d ims_db && break
             sleep 2
           done
 
