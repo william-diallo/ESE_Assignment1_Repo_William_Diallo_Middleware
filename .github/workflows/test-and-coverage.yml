@@ -49,22 +49,42 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install \
-            Django==6.0.3 \
-            djangorestframework \
-            djangorestframework-simplejwt \
-            django-cors-headers \
-            python-dotenv \
-            sendgrid \
-            psycopg2-binary \
-            coverage
+          python -m pip install -r requirements.txt coverage
 
       - name: Wait for PostgreSQL
         run: |
-          for i in {1..20}; do
-            pg_isready -h localhost -p 5432 -U postgres -d ims_db && break
-            sleep 2
-          done
+          python - <<'PY'
+          import os
+          import time
+          import psycopg2
+
+          host = os.getenv("POSTGRES_HOST", "localhost")
+          port = int(os.getenv("POSTGRES_PORT", "5432"))
+          dbname = os.getenv("POSTGRES_DB", "ims_db")
+          user = os.getenv("POSTGRES_USER", "postgres")
+          password = os.getenv("POSTGRES_PASSWORD", "postgres")
+
+          deadline = time.time() + 60
+          last_error = None
+
+          while time.time() < deadline:
+            try:
+              conn = psycopg2.connect(
+                host=host,
+                port=port,
+                dbname=dbname,
+                user=user,
+                password=password,
+              )
+              conn.close()
+              print("PostgreSQL is ready")
+              break
+            except Exception as exc:
+              last_error = exc
+              time.sleep(2)
+          else:
+            raise SystemExit(f"PostgreSQL did not become ready in time: {last_error}")
+          PY
 
       - name: Run migrations
         run: python manage.py migrate
