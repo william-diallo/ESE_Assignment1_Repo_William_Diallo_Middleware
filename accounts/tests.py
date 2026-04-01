@@ -122,7 +122,9 @@ class MiddlewareUnitTests(TestCase):
     """Unit tests for request logging middleware behavior."""
 
     def setUp(self):
-        self.middleware = RequestLoggingMiddleware(get_response=lambda request: HttpResponse("ok"))
+        self.middleware = RequestLoggingMiddleware(
+            get_response=lambda request: HttpResponse("ok")
+        )
         self.factory = RequestFactory()
 
     def test_middleware_echoes_x_request_id_header(self):
@@ -146,7 +148,9 @@ class PasswordResetViewUnitTests(TestCase):
         )
 
     @patch("accounts.services.send_password_reset_code_email", return_value=True)
-    def test_password_reset_request_unknown_email_returns_generic_success(self, mocked_sender):
+    def test_password_reset_request_unknown_email_returns_generic_success(
+        self, mocked_sender
+    ):
         # Unknown emails should still return a generic 200 to prevent enumeration.
         response = self.client.post(
             "/api/auth/password-reset/request/",
@@ -162,7 +166,9 @@ class PasswordResetViewUnitTests(TestCase):
         mocked_sender.assert_not_called()
 
     @patch("accounts.services.send_password_reset_success_email", return_value=True)
-    def test_password_reset_confirm_sends_success_email(self, mocked_confirmation_sender):
+    def test_password_reset_confirm_sends_success_email(
+        self, mocked_confirmation_sender
+    ):
         # A valid code should reset password and trigger confirmation email.
         reset_code = PasswordResetCode.objects.create(
             user=self.user,
@@ -181,7 +187,9 @@ class PasswordResetViewUnitTests(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["detail"], "Password has been reset successfully.")
+        self.assertEqual(
+            response.data["detail"], "Password has been reset successfully."
+        )
         mocked_confirmation_sender.assert_called_once_with(self.user.email)
 
         # Ensure old code is marked as used after reset completion.
@@ -197,7 +205,9 @@ class EmailServiceUnitTests(TestCase):
         # Missing API key should fail safely without raising.
         self.assertFalse(send_password_reset_success_email("nobody@example.com"))
 
-    @override_settings(SENDGRID_API_KEY="SG.test", DEFAULT_FROM_EMAIL="sender@example.com")
+    @override_settings(
+        SENDGRID_API_KEY="SG.test", DEFAULT_FROM_EMAIL="sender@example.com"
+    )
     @patch("notifications.workflows.send_email_via_sendgrid", return_value=True)
     def test_success_email_calls_sendgrid_helper(self, mocked_send):
         sent = send_password_reset_success_email("target@example.com")

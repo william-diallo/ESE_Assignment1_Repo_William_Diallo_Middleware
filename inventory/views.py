@@ -8,8 +8,12 @@ from accounts.throttles import InventoryWriteRateThrottle
 
 from .models import InventoryItem
 from .serialisers import InventoryItemSerializer, InventoryItemUpdateSerializer
-from .services import (create_inventory_item, delete_inventory_item,
-                       search_inventory_items, update_inventory_item)
+from .services import (
+    create_inventory_item,
+    delete_inventory_item,
+    search_inventory_items,
+    update_inventory_item,
+)
 
 
 class InventoryItemViewSet(viewsets.ModelViewSet):

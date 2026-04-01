@@ -13,7 +13,9 @@ def get_admin_emails() -> list[str]:
 
     admin_users = (
         User.objects.filter(
-            Q(role__in=tuple(PRIVILEGED_ROLES)) | Q(is_staff=True) | Q(is_superuser=True)
+            Q(role__in=tuple(PRIVILEGED_ROLES))
+            | Q(is_staff=True)
+            | Q(is_superuser=True)
         )
         .exclude(email="")
         .values_list("email", flat=True)

@@ -66,6 +66,4 @@ def confirm_password_reset(
     PasswordResetCode.objects.filter(user=user, is_used=False).update(is_used=True)
 
     confirmation_email_sent = send_password_reset_success_email(user.email)
-    return PasswordResetConfirmResult(
-        confirmation_email_sent=confirmation_email_sent
-    )
+    return PasswordResetConfirmResult(confirmation_email_sent=confirmation_email_sent)

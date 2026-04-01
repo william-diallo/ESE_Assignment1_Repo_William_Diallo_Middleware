@@ -1,8 +1,8 @@
 """Shared Django settings used by all environments."""
 
-from pathlib import Path
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 

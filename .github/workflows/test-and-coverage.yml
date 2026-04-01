@@ -2,9 +2,9 @@ name: Test and Coverage
 
 on:
   push:
-    branches: [main, Security_Enhancements]
+    branches: [main, "**"]
   pull_request:
-    branches: [main]
+    branches: [main, "**"]
 
 jobs:
   test_and_coverage:

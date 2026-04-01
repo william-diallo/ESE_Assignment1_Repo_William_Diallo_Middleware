@@ -1,8 +1,13 @@
 from django.urls import path
 
-from .views import (CaseInsensitiveTokenObtainPairView,
-                    PasswordResetConfirmView, PasswordResetRequestView,
-                    ProfileView, RegisterView, ThrottledTokenRefreshView)
+from .views import (
+    CaseInsensitiveTokenObtainPairView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+    ProfileView,
+    RegisterView,
+    ThrottledTokenRefreshView,
+)
 
 urlpatterns = [
     # User registration

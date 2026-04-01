@@ -1,6 +1,5 @@
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
-
 # ---------------------------------------------------------------------------
 # Custom throttle classes for sensitive endpoints.
 # Rates are configured via settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'].

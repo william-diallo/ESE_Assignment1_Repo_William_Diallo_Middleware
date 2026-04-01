@@ -78,7 +78,9 @@ def send_password_reset_code_email(
         logger.info("Password reset code email sent to %s", user_email)
         return True
     except Exception as exc:
-        logger.error("Failed to send password reset code to %s: %s", user_email, str(exc))
+        logger.error(
+            "Failed to send password reset code to %s: %s", user_email, str(exc)
+        )
         return False
 
 

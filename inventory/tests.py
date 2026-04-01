@@ -95,8 +95,12 @@ class InventoryServiceUnitTests(TestCase):
         self.assertFalse(InventoryItem.objects.filter(id=item.id).exists())
 
     def test_search_inventory_items_matches_name_and_category(self):
-        InventoryItem.objects.create(name="Dell Laptop", category="Hardware", quantity=1)
-        InventoryItem.objects.create(name="Office Chair", category="Furniture", quantity=1)
+        InventoryItem.objects.create(
+            name="Dell Laptop", category="Hardware", quantity=1
+        )
+        InventoryItem.objects.create(
+            name="Office Chair", category="Furniture", quantity=1
+        )
 
         results = search_inventory_items("laptop")
         self.assertEqual(results.count(), 1)
@@ -110,7 +114,9 @@ class InventorySignalsUnitTests(TestCase):
     @override_settings(LOW_STOCK_THRESHOLD=10)
     def test_low_stock_alert_sent_on_transition(self, mocked_sender):
         # Create item above threshold, then update to low stock to trigger transition.
-        item = InventoryItem.objects.create(name="Router", quantity=20, category="Network")
+        item = InventoryItem.objects.create(
+            name="Router", quantity=20, category="Network"
+        )
         mocked_sender.assert_not_called()
 
         item.quantity = 5

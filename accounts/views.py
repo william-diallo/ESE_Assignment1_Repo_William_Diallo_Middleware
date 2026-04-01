@@ -5,6 +5,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from .models import User
+from .serialisers import (
+    CaseInsensitiveTokenObtainPairSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
+from .services import confirm_password_reset, request_password_reset
 from .throttles import (
     LoginRateThrottle,
     PasswordResetRateThrottle,
@@ -12,13 +21,6 @@ from .throttles import (
     RegisterRateThrottle,
     TokenRefreshRateThrottle,
 )
-
-from .models import User
-from .services import confirm_password_reset, request_password_reset
-from .serialisers import (CaseInsensitiveTokenObtainPairSerializer,
-                          PasswordResetConfirmSerializer,
-                          PasswordResetRequestSerializer, RegisterSerializer,
-                          UserSerializer)
 
 
 class CaseInsensitiveTokenObtainPairView(TokenObtainPairView):
