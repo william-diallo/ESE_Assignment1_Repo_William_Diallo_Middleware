@@ -2,9 +2,9 @@ name: Format & Lint
 
 on:
   push:
-    branches: [main]
+    branches: [main, "**"]
   pull_request:
-    branches: [main]
+    branches: [main, "**"]
 
 jobs:
   formatting_linting:
@@ -18,24 +18,24 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.13"
 
       - name: Install linting/formatting tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install black==24.1.0 isort==5.12.0 flake8==6.0.0
+          python -m pip install black==26.3.1 isort==8.0.1 flake8==7.3.0
+
+      - name: Show tool versions
+        run: |
+          python -m black --version
+          python -m isort --version-number
+          python -m flake8 --version
 
       - name: Run black (format check)
-        run: |
-          black .
-          black --check .
+        run: black --check .
 
       - name: Run isort (import sorting check)
-        run: |
-          isort .
-          isort --check-only .
-        continue-on-error: true
+        run: isort --profile black --check-only .
 
       - name: Run flake8
-        run: |
-          flake8 . --ignore=E501
+        run: flake8 . --config .flake8

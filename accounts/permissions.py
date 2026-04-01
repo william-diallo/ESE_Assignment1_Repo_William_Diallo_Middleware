@@ -1,5 +1,7 @@
 from rest_framework import permissions
 
+from .roles import has_privileged_role
+
 
 class IsStaffOrReadOnly(permissions.BasePermission):
     """Permission class that allows read-only access to authenticated users,
@@ -19,7 +21,7 @@ class IsStaffOrReadOnly(permissions.BasePermission):
             return True
 
         # Write access only for staff/admin roles.
-        return getattr(request.user, "role", "") in {"ADMIN", "STAFF"}
+        return has_privileged_role(request.user)
 
 
 class AllowAnonymousCreate(permissions.BasePermission):

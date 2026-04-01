@@ -5,7 +5,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from notifications.email_service import send_low_stock_alert_email
+from notifications.workflows import send_low_stock_alert_email
 
 from .models import InventoryItem
 
