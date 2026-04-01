@@ -2,6 +2,8 @@
 
 from .settings_common import *  # noqa: F401,F403
 
+SECRET_KEY = "test-only-secret-key-not-used-in-production-change-me"
+
 DEBUG = False
 IS_PRODUCTION = False
 
