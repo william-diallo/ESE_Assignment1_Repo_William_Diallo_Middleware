@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
@@ -9,13 +8,11 @@ from rest_framework import status
 from rest_framework.test import APIClient, APIRequestFactory
 
 from accounts.middleware import RequestLoggingMiddleware
-from accounts.models import PasswordResetCode, User
+from accounts.models import PasswordResetCode
 from accounts.permissions import AllowAnonymousCreate, IsStaffOrReadOnly
 from accounts.serialisers import PasswordResetConfirmSerializer, RegisterSerializer
 from notifications.email_service import send_password_reset_success_email
 from tests.utils import create_test_user
-
-UserModel = get_user_model()
 
 
 class UserAndResetCodeModelTests(TestCase):

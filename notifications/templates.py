@@ -12,12 +12,31 @@ def generate_low_stock_email_html(item) -> str:
             <style>
                 body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
                 .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .alert-header {{ background-color: #ff6b6b; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
-                .item-details {{ background-color: #f5f5f5; padding: 15px; border-left: 4px solid #ff6b6b; margin: 15px 0; }}
+                .alert-header {{
+                    background-color: #ff6b6b;
+                    color: white;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                }}
+                .item-details {{
+                    background-color: #f5f5f5;
+                    padding: 15px;
+                    border-left: 4px solid #ff6b6b;
+                    margin: 15px 0;
+                }}
                 .detail-row {{ margin: 10px 0; }}
                 .label {{ font-weight: bold; color: #666; }}
                 .value {{ color: #333; }}
-                .cta-button {{ display: inline-block; background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }}
+                .cta-button {{
+                    display: inline-block;
+                    background-color: #007bff;
+                    color: white;
+                    padding: 10px 20px;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin-top: 15px;
+                }}
                 .footer {{ font-size: 12px; color: #999; margin-top: 20px; text-align: center; }}
             </style>
         </head>

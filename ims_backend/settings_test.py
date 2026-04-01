@@ -1,6 +1,6 @@
 """Test Django settings."""
 
-from .settings_common import *
+from .settings_common import *  # noqa: F401,F403
 
 DEBUG = False
 IS_PRODUCTION = False
