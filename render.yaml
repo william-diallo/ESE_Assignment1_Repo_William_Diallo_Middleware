@@ -20,6 +20,8 @@ services:
         fromDatabase:
           name: ims-db
           property: connectionString
+      - key: FRONTEND_ORIGIN
+        value: https://ims-frontend-ruw7.onrender.com
       - key: SENDGRID_API_KEY
         sync: false
       - key: DEFAULT_FROM_EMAIL
