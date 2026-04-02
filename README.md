@@ -597,7 +597,7 @@ This project is configured for deployment on the **Render free tier** using `ren
 ### Deployed URL
 
 The live backend API is deployed at:  
-**`https://ims-backend-XXXX.onrender.com`**
+**`https://ims-backend-8qwe.onrender.com/`**
 
 > Deployment links are included in the video demonstration submission. Free-tier PostgreSQL on Render will remain active for at least three weeks from the submission date (27 March 2026).
 
