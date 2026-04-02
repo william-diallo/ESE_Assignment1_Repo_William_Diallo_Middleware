@@ -128,9 +128,29 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-CORS_ALLOW_ALL_ORIGINS = True
+DJANGO_ENV = os.getenv("DJANGO_ENV", "dev").lower()
+
+_local_dev_origins = {
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+}
+_frontend_origin = os.getenv("FRONTEND_ORIGIN", "").strip()
+_configured_origins = {
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+}
+
+CORS_ALLOWED_ORIGINS = sorted(_local_dev_origins | _configured_origins)
+if _frontend_origin:
+    CORS_ALLOWED_ORIGINS.append(_frontend_origin)
+
+CORS_ALLOW_ALL_ORIGINS = DJANGO_ENV != "prod"
 CORS_ALLOW_HEADERS = ["*"]
 CORS_ALLOW_METHODS = ["*"]
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
